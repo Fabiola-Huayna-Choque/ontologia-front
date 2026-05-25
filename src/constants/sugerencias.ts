@@ -508,5 +508,102 @@ GROUP BY ?pais
 
 # 4. Ordenamos de mayor a menor según la cantidad de series
 ORDER BY DESC(?totalSeries)`
+},
+{
+  pregunta: "Series basadas en obras literarias o cómics",
+  modo: "FUSEKI",
+  query: PREFIX_FUSEKI + `
+SELECT ?titulo ?categoria
+WHERE {
+  # 1. Buscamos individuos que sean Series
+  ?serie rdf:type ont:Series_televisivas .
+
+  # 2. Obtenemos el título para mostrarlo
+  ?serie ont:tituloSerie ?titulo .
+
+  # 3. Filtramos por la categoría de la obra
+  ?serie ont:categoriaObra ?categoria .
+
+  # 4. Solo queremos las que sean "comics"
+  FILTER(?categoria = "comics")
+}`
+},
+{
+  pregunta: "Episodio con la calificación más alta",
+  modo: "FUSEKI",
+  query: PREFIX_FUSEKI + `
+SELECT ?episodio ?califMax
+WHERE {
+  ?episodio rdf:type ont:Episodio .
+  ?episodio ont:calificacionEpisodio ?califMax .
+}
+ORDER BY DESC(?califMax)
+LIMIT 1`
+},
+{
+  pregunta: "Productoras independientes en las plataformas",
+  modo: "FUSEKI",
+  query: PREFIX_FUSEKI + `
+SELECT ?productora (COUNT(DISTINCT ?plataforma) AS ?plataformas)
+WHERE {
+  ?serie ont:producidaPor ?productora .
+  ?serie ont:seEmiteEn ?plataforma .
+}
+GROUP BY ?productora
+HAVING (COUNT(DISTINCT ?plataforma) >= 1)`
+},
+{
+  pregunta: "Series más maratoneadas (binge-watching)",
+  modo: "FUSEKI",
+  query: PREFIX_FUSEKI + `
+SELECT ?titulo ?numTemporadas ?numEpisodios
+WHERE {
+  ?serie rdf:type ont:Serie_tvShows .
+  ?serie ont:tituloSerie ?titulo .
+  ?serie ont:numeroTemporadas ?numTemporadas .
+  ?serie ont:numeroEpisodios ?numEpisodios .
+}
+ORDER BY DESC(?numEpisodios) DESC(?numTemporadas)
+LIMIT 1`
+},
+{
+  pregunta: "Idiomas o plataformas de distribución internacional",
+  modo: "FUSEKI",
+  query: PREFIX_FUSEKI + `
+SELECT ?titulo (COUNT(DISTINCT ?plataforma) AS ?totalPlataformas)
+WHERE {
+  ?serie rdf:type ont:Series_Televisivas .
+  ?serie ont:tituloSerie ?titulo .
+  ?serie ont:SeEmiteEn ?plataforma .
+}
+GROUP BY ?serie ?titulo
+ORDER BY DESC(?totalPlataformas)`
+},
+{
+  pregunta: "Series con episodios especiales",
+  modo: "FUSEKI",
+  query: PREFIX_FUSEKI + `
+SELECT ?titulo ?numEpisodios ?descripcion
+WHERE {
+  ?serie rdf:type ont:Series_televisivas .
+  ?serie ont:tituloSerie ?titulo .
+  ?serie ont:numeroEpisodios ?numEpisodios .
+  OPTIONAL { ?serie ont:descripcion ?descripcion }
+}
+ORDER BY DESC(?numEpisodios)`
+},
+{
+  pregunta: "Intervalo de tiempo entre temporadas",
+  modo: "FUSEKI",
+  query: PREFIX_FUSEKI + `
+SELECT ?titulo ?fechaEstreno ?numTemporadas ?estado
+WHERE {
+  ?serie rdf:type ont:Series_televisivas .
+  ?serie ont:tieneTituloSerie ?titulo .
+  ?serie ont:tieneFechaEstreno ?fechaEstreno .
+  ?serie ont:tieneNumTemporadas ?numTemporadas .
+  OPTIONAL { ?serie ont:estadoDeSerie ?estado }
+}
+ORDER BY ?fechaEstreno`
 }
 ];
