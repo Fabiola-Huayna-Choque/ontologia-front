@@ -103,14 +103,23 @@ export function parseSparqlToSerie(rawData: any[]): Serie[] {
 
       const nombreDefinitivo = posiblesNombres.find(val => typeof val === 'string' && val.trim() !== '') || `Resultado ${i + 1}`;
 
-      // 3. Construimos el objeto adaptado a Serie inyectándole dinámicamente todo lo parseado
-      const serieAdaptada: Serie = {
-        id: i,
-        nombre: String(nombreDefinitivo),
-        tipo: detectarTipoFromString(item),
-        descripcion: item.length > 500 ? item.substring(0, 500) + '...' : item,
-        ...parsedRow // 👈 Aquí se inyectan todas las claves dinámicas (?fecha1, ?cantidadSeries, etc.)
-      };
+      // 3. Construimos un texto alternativo legible basado en las propiedades capturadas
+const detallesLimpios = Object.entries(parsedRow)
+  .filter(([key]) => key !== 'nombre') 
+  .map(([key, val]) => `${key.replace(/([A-Z])/g, ' $1').trim()}: ${val}`)
+  .join(' • ');
+
+// CAMBIO AQUÍ: Si hay propiedades dinámicas, dejamos la descripción vacía 
+// para que no repita lo mismo que los badges de abajo.
+const descriptionFallback = ""; 
+
+const serieAdaptada: Serie = {
+  id: i,
+  nombre: String(nombreDefinitivo),
+  tipo: detectarTipoFromString(item),
+  descripcion: descriptionFallback, 
+  ...parsedRow 
+}
 
       series.push(serieAdaptada);
     }

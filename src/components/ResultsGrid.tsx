@@ -8,9 +8,10 @@ import { FiltrosLaterales } from './FiltrosLaterales';
 interface ResultsGridProps {
   results: Serie[];
   loading: boolean;
+  currentQuery: string; // <-- Nueva Propiedad para capturar la pregunta/búsqueda
 }
 
-export const ResultsGrid: React.FC<ResultsGridProps> = ({ results, loading }) => {
+export const ResultsGrid: React.FC<ResultsGridProps> = ({ results, loading, currentQuery }) => {
   const [selectedFilter, setSelectedFilter] = useState<string | null>(null);
 
   // Calcular contadores para filtros según los tipos de tu ontología
@@ -64,6 +65,11 @@ export const ResultsGrid: React.FC<ResultsGridProps> = ({ results, loading }) =>
     <div style={{ padding: '20px', maxWidth: '1400px', margin: '0 auto' }}>
       {results.length === 0 && !loading ? (
         <div style={{ textAlign: 'center', padding: '60px', background: '#1e293b', borderRadius: '12px' }}>
+          {currentQuery && (
+            <p style={{ color: '#38bdf8', fontSize: '16px', marginBottom: '10px', fontWeight: '500' }}>
+              Búsqueda: "{currentQuery}"
+            </p>
+          )}
           <p style={{ color: '#94a3b8' }}>No se encontraron resultados para esta consulta</p>
         </div>
       ) : (
@@ -103,7 +109,26 @@ export const ResultsGrid: React.FC<ResultsGridProps> = ({ results, loading }) =>
                 </button>
               )}
             </div>
+
+            {/* SECCIÓN DE LA PREGUNTA SELECCIONADA */}
+            {currentQuery && (
+              <div style={{ 
+                background: '#1e293b', 
+                padding: '14px 20px', 
+                borderRadius: '8px', 
+                marginBottom: '20px',
+                borderLeft: '4px solid #818cf8'
+              }}>
+                <span style={{ color: '#94a3b8', fontSize: '12px', uppercase: 'true', display: 'block', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Consulta Activa
+                </span>
+                <p style={{ color: '#f8fafc', fontSize: '16px', fontWeight: '600', margin: 0 }}>
+                  {currentQuery}
+                </p>
+              </div>
+            )}
             
+            {/* Contenedor de Tarjetas */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {filteredResults.map((item, index) => (
                 <TarjetaResultado key={item.id || index} item={item} onClick={() => {}} />

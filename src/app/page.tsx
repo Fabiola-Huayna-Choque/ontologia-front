@@ -11,12 +11,14 @@ type View = 'home' | 'results';
 
 export default function HomePage() {
   const [currentView, setCurrentView] = useState<View>('home');
-  const [mostrarTodas, setMostrarTodas] = useState(false); // Controla el colapso de las sugerencias
+  const [mostrarTodas, setMostrarTodas] = useState(false);
+  const [searchTitle, setSearchTitle] = useState(''); // <-- Nuevo estado para guardar la pregunta/búsqueda
   
   const { results, loading, error, executeSparql } = useSearch();
 
-  // Búsqueda desde la barra superior de texto (Apuntar por defecto a FUSEKI local)
+  // Búsqueda desde la barra superior de texto
   const handleSearch = (textoBuscador: string) => {
+    setSearchTitle(textoBuscador); // Guardamos lo que se escribió o la categoría
     const query = `PREFIX ont: <http://www.semanticweb.org/dell/ontologies/2026/2#>
 SELECT ?s ?p ?o WHERE { ?s ?p ?o . FILTER(regex(str(?s), "${textoBuscador}", "i")) } LIMIT 20`;
     
@@ -24,34 +26,29 @@ SELECT ?s ?p ?o WHERE { ?s ?p ?o . FILTER(regex(str(?s), "${textoBuscador}", "i"
     setCurrentView('results');
   };
 
-  // La sugerencia decide de manera independiente su entorno en secreto
+  // Búsqueda desde preguntas sugeridas
   const seleccionarSugerencia = (item: SugerenciaPregunta) => {
+    setSearchTitle(item.pregunta); // Guardamos el texto exacto de la pregunta sugerida
     executeSparql(item.query, item.modo);
     setCurrentView('results');
   };
 
-  // Filtrar cuántas preguntas mostrar inicialmente en la Home
   const sugerenciasVisibles = mostrarTodas ? LISTA_SUGERENCIAS : LISTA_SUGERENCIAS.slice(0, 3);
 
   return (
     <div style={{ minHeight: '100vh', background: '#0f172a', color: 'white' }}>
-      {/* Barra de Navegación superior */}
-<Navbar onNavigate={(page) => {
-  if (page === 'home') {
-    setCurrentView('home');
-  } else if (page === 'series') {
-    // Busca automáticamente el concepto general de series en FUSEKI de forma oculta
-    handleSearch('Serie'); 
-  } else if (page === 'personajes') {
-    // Busca automáticamente el concepto general de personajes en FUSEKI de forma oculta
-    handleSearch('Personaje');
-  } else if (page === 'reviews') {
-    // Busca automáticamente el concepto general de reviews en FUSEKI de forma oculta
-    handleSearch('Review');
-  }
-}} />
+      <Navbar onNavigate={(page) => {
+        if (page === 'home') {
+          setCurrentView('home');
+        } else if (page === 'series') {
+          handleSearch('Serie'); 
+        } else if (page === 'personajes') {
+          handleSearch('Personaje');
+        } else if (page === 'reviews') {
+          handleSearch('Review');
+        }
+      }} />
 
-      {/* VISTA PRINCIPAL (HOME) */}
       {currentView === 'home' && (
         <>
           <Hero 
@@ -60,7 +57,6 @@ SELECT ?s ?p ?o WHERE { ?s ?p ?o . FILTER(regex(str(?s), "${textoBuscador}", "i"
             onSelectSugerencia={seleccionarSugerencia} 
           />
           
-          {/* SECCIÓN INFERIOR DE PREGUNTAS SUGERIDAS */}
           <div style={{ maxWidth: '800px', margin: '-30px auto 50px auto', padding: '0 20px' }}>
             <h3 style={{ color: '#38bdf8', marginBottom: '15px', borderBottom: '1px solid #334155', paddingBottom: '8px' }}>
               💡 Preguntas sugeridas (Consultas asociadas)
@@ -89,7 +85,6 @@ SELECT ?s ?p ?o WHERE { ?s ?p ?o . FILTER(regex(str(?s), "${textoBuscador}", "i"
               ))}
             </div>
 
-            {/* Botón para ver el resto de preguntas sugeridas */}
             {LISTA_SUGERENCIAS.length > 3 && (
               <button
                 onClick={() => setMostrarTodas(!mostrarTodas)}
@@ -102,7 +97,6 @@ SELECT ?s ?p ?o WHERE { ?s ?p ?o . FILTER(regex(str(?s), "${textoBuscador}", "i"
         </>
       )}
       
-      {/* VISTA DE RESULTADOS */}
       {currentView === 'results' && (
         <div style={{ maxWidth: '1000px', margin: '0 auto', paddingBottom: '25px' }}>
           <button 
@@ -114,7 +108,8 @@ SELECT ?s ?p ?o WHERE { ?s ?p ?o . FILTER(regex(str(?s), "${textoBuscador}", "i"
           
           {error && <div style={{ color: '#ef4444', textAlign: 'center', marginTop: '20px', fontWeight: 'bold' }}>{error}</div>}
           
-          <ResultsGrid results={results} loading={loading} />
+          {/* Añadimos la propiedad currentQuery pasándole nuestro estado searchTitle */}
+          <ResultsGrid results={results} loading={loading} currentQuery={searchTitle} />
         </div>
       )}
     </div>

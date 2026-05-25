@@ -43,6 +43,12 @@ export const TarjetaResultado: React.FC<ResultCardProps> = ({ item, onClick }) =
     return item.tipo;
   };
 
+  // Extraer propiedades dinámicas ignorando los campos fijos de la interfaz Serie
+  const propiedadesDinamicas = Object.entries(item).filter(([key]) => {
+    const camposFijos = ['id', 'nombre', 'tipo', 'descripcion', 'numeroTemporadas', 'numeroEpisodios', 'duracionMinutos', 'paisOrigen', 'rolNarrativo'];
+    return !camposFijos.includes(key) && typeof item[key as keyof Serie] !== 'object';
+  });
+
   return (
     <div
       onClick={() => onClick(item)}
@@ -77,9 +83,34 @@ export const TarjetaResultado: React.FC<ResultCardProps> = ({ item, onClick }) =
         </div>
       </div>
       
-      <p style={{ color: '#cbd5e1', fontSize: '14px', margin: 0, lineHeight: '1.5' }}>
-        {item.descripcion?.substring(0, 120) || 'Sin descripción disponible'}...
+      {/* Texto descriptivo limpio */}
+      <p style={{ color: '#cbd5e1', fontSize: '14px', margin: '0 0 12px 0', lineHeight: '1.5' }}>
+        {item.descripcion}
       </p>
+
+      {/* CONTENEDOR DINÁMICO DE PROPIEDADES PARSEADAS CLAVE-VALOR */}
+      {propiedadesDinamicas.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '10px' }}>
+          {propiedadesDinamicas.map(([key, val]) => (
+            <div 
+              key={key} 
+              style={{
+                background: '#0f172a',
+                border: '1px solid #334155',
+                borderRadius: '6px',
+                padding: '4px 10px',
+                fontSize: '12px',
+                color: '#cbd5e1'
+              }}
+            >
+              <strong style={{ color: '#818cf8', textTransform: 'capitalize' }}>
+                {key.replace(/([A-Z])/g, ' $1').trim()}:
+              </strong>{' '}
+              {String(val)}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
