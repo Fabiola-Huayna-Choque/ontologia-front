@@ -314,5 +314,199 @@ WHERE {
 }
 GROUP BY ?subgenero
 ORDER BY DESC(?cantidadSeries)`
-  }
+  },
+{
+  pregunta: "¿Cuál es el intervalo de tiempo promedio entre el estreno de una temporada y la siguiente?",
+  modo: "FUSEKI",
+  query: PREFIX_FUSEKI + `
+SELECT ?titulo ?fechaEstreno ?numTemporadas
+WHERE {
+  ?serie rdf:type ont:Series_televisivas .
+  ?serie ont:tituloSerie ?titulo .
+  ?serie ont:fechaEstreno ?fechaEstreno .
+  ?serie ont:numeroTemporadas ?numTemporadas .
+}
+ORDER BY ?fechaEstreno`
+},
+{
+  pregunta: "¿Qué series cuentan con episodios especiales (como especiales de Navidad o episodios interactivos)?",
+  modo: "FUSEKI",
+  query: PREFIX_FUSEKI + `
+SELECT ?titulo ?numEpisodios ?descripcion
+WHERE {
+  ?serie rdf:type ont:Series_televisivas .
+  ?serie ont:tituloSerie ?titulo .
+  ?serie ont:numeroEpisodios ?numEpisodios .
+  ?serie ont:descripcion ?descripcion .
+  
+  FILTER (CONTAINS(LCASE(?descripcion), "especial") || 
+          CONTAINS(LCASE(?descripcion), "navidad") ||
+          CONTAINS(LCASE(?descripcion), "interactivo"))
+}
+ORDER BY DESC(?numEpisodios)`
+},
+{
+  pregunta: "¿En cuántos idiomas ha sido doblada o subtitulada la serie para su distribución internacional?",
+  modo: "FUSEKI",
+  query: PREFIX_FUSEKI + `
+SELECT ?titulo 
+       (COUNT(DISTINCT ?doblaje) AS ?totalDoblajes)
+       (COUNT(DISTINCT ?subtitulo) AS ?totalSubtitulos)
+WHERE {
+  ?serie rdf:type ont:Series_televisivas .
+  ?serie ont:tituloSerie ?titulo .
+  
+  OPTIONAL { ?serie ont:dobladoA ?doblaje }
+  OPTIONAL { ?serie ont:subtituladoA ?subtitulo }
+}
+GROUP BY ?serie ?titulo
+ORDER BY DESC(?totalDoblajes)`
+},
+{
+  pregunta: "¿Qué series mantienen el récord de ser las más 'maratoneadas' (binge-watching) en su primera semana?",
+  modo: "FUSEKI",
+  query: PREFIX_FUSEKI + `
+SELECT ?titulo ?numEpisodios ?numTemporadas
+WHERE {
+  ?serie rdf:type ont:Series_televisivas .
+  ?serie ont:tituloSerie ?titulo .
+  ?serie ont:numeroEpisodios ?numEpisodios .
+  ?serie ont:numeroTemporadas ?numTemporadas .
+}
+ORDER BY DESC(?numEpisodios) DESC(?numTemporadas)
+LIMIT 1`
+},
+{
+  pregunta: "¿Qué productoras independientes han logrado colocar sus series en las 3 plataformas de streaming principales?",
+  modo: "FUSEKI",
+  query: PREFIX_FUSEKI + `
+SELECT ?productora (COUNT(DISTINCT ?plataforma) AS ?totalPlataformas)
+WHERE {
+  ?serie ont:producidaPor ?productora .
+  ?serie ont:seEmiteEn ?plataforma .
+  ?productora ont:esIndependiente true .
+}
+GROUP BY ?productora
+HAVING (COUNT(DISTINCT ?plataforma) >= 3)
+ORDER BY DESC(?totalPlataformas)`
+},
+{
+  pregunta: "¿En qué plataforma se transmite?",
+  modo: "FUSEKI",
+  query: PREFIX_FUSEKI + `
+SELECT ?titulo ?plataforma
+WHERE {
+
+  # 1. Buscamos individuos de la clase Series_televisivas
+  ?serie rdf:type ont:Series_televisivas ;
+
+         # 2. Obtenemos el título de la serie
+         ont:tituloSerie ?titulo ;
+
+         # 3. Relacionamos la serie con una plataforma de emisión
+         ont:seEmiteEn ?plataformaInd .
+
+  # 4. Verificamos que el individuo pertenezca a PlataformaEmision
+  ?plataformaInd rdf:type ont:PlataformaEmision ;
+
+                 # 5. Extraemos el nombre de la plataforma
+                 ont:nombrePlataforma ?plataforma .
+}`
+},
+
+{
+  pregunta: "¿Qué series se distribuyen en plataformas de tipo streaming?",
+  modo: "FUSEKI",
+  query: PREFIX_FUSEKI + `
+SELECT DISTINCT ?titulo
+WHERE {
+
+  # 1. Buscamos series televisivas
+  ?serie rdf:type ont:Series_televisivas ;
+
+         # 2. Obtenemos el título de la serie
+         ont:tituloSerie ?titulo ;
+
+         # 3. Relacionamos la serie con una plataforma
+         ont:seEmiteEn ?plat .
+
+  # 4. Verificamos que sea una PlataformaEmision
+  ?plat rdf:type ont:PlataformaEmision ;
+
+        # 5. Obtenemos el tipo de plataforma
+        ont:tipo ?tipo .
+
+  # 6. Filtramos solo plataformas tipo Streaming
+  FILTER(?tipo = "Streaming")
+}`
+},
+
+{
+  pregunta: "¿Netflix es una de las plataformas que saca más series?",
+  modo: "FUSEKI",
+  query: PREFIX_FUSEKI + `
+SELECT ?plataforma (COUNT(?serie) AS ?totalSeries)
+WHERE {
+
+  # 1. Buscamos series televisivas
+  ?serie rdf:type ont:Series_televisivas ;
+
+         # 2. Relacionamos la serie con su plataforma
+         ont:seEmiteEn ?plataformaInd .
+
+  # 3. Verificamos que sea una plataforma de emisión
+  ?plataformaInd rdf:type ont:PlataformaEmision ;
+
+                 # 4. Obtenemos el nombre de la plataforma
+                 ont:nombrePlataforma ?plataforma .
+}
+
+# 5. Agrupamos por plataforma
+GROUP BY ?plataforma
+
+# 6. Ordenamos de mayor a menor cantidad de series
+ORDER BY DESC(?totalSeries)`
+},
+
+{
+  pregunta: "¿Qué series han sido producidas en Estados Unidos?",
+  modo: "FUSEKI",
+  query: PREFIX_FUSEKI + `
+SELECT ?titulo
+WHERE {
+
+  # 1. Buscamos individuos de tipo Series_televisivas
+  ?serie rdf:type ont:Series_televisivas ;
+
+         # 2. Extraemos el título de la serie
+         ont:tituloSerie ?titulo ;
+
+         # 3. Obtenemos el país de producción
+         ont:paisProduccion ?pais .
+
+  # 4. Filtramos únicamente las series producidas en Estados Unidos
+  FILTER(?pais = "Estados Unidos")
+}`
+},
+
+{
+  pregunta: "¿Qué países producen más series?",
+  modo: "FUSEKI",
+  query: PREFIX_FUSEKI + `
+SELECT ?pais (COUNT(?serie) AS ?totalSeries)
+WHERE {
+
+  # 1. Buscamos series televisivas
+  ?serie rdf:type ont:Series_televisivas ;
+
+         # 2. Extraemos el país de producción
+         ont:paisProduccion ?pais .
+}
+
+# 3. Agrupamos las series por país
+GROUP BY ?pais
+
+# 4. Ordenamos de mayor a menor según la cantidad de series
+ORDER BY DESC(?totalSeries)`
+}
 ];
