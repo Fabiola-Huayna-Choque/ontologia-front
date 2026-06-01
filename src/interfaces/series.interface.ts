@@ -5,6 +5,7 @@ export interface Serie {
   nombre: string;
   tipo: 'Serie' | 'Personaje' | 'Protagonista' | 'Antagonista' | 'Temporada' | 'Episodio' | 'Productora' | 'PlataformaEmision' | 'PremioNominacion' | 'Actor/Actriz' | 'Director' | 'Genero';
   descripcion: string;
+  origen: 'LOCAL' | 'ONLINE' | 'OFFLINE';
   
   // ========== PROPIEDADES DE Series_televisivas ==========
   estadoSerie?: string;           // "Finalizado", "En emisión"
@@ -91,7 +92,9 @@ export interface Serie {
   
   // ========== PROPIEDADES ADICIONALES ==========
   imagen?: string;                // Para futuras imágenes
-  premios?: string;               // Texto concatenado de premios
+  premios?: string;   
+  
+  [key: string]: any;// Texto concatenado de premios
 }
 
 export interface SearchResponse {

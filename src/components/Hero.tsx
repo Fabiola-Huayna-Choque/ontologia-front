@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { LISTA_SUGERENCIAS, SugerenciaPregunta } from '@/constants/sugerencias';
+import { useTranslation } from 'react-i18next';
 
 interface HeroProps {
   onSearch: (query: string) => void;
@@ -13,27 +14,30 @@ export const Hero: React.FC<HeroProps> = ({ onSearch, onCategoryClick, onSelectS
   const [query, setQuery] = useState('');
   const [sugerenciasFiltradas, setSugerenciasFiltradas] = useState<SugerenciaPregunta[]>([]);
   const [mostrarDropdown, setMostrarDropdown] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
   const containerRef = useRef<HTMLDivElement>(null);
+  
+  // 🌐 Extraemos 'i18n' para escuchar de forma reactiva cuándo muta el idioma global
+  const { t, i18n } = useTranslation(); 
 
-  // Detectar lo que el usuario escribe y filtrar las sugerencias en tiempo real
+  // Filtrar sugerencias en tiempo real (reacciona al texto introducido o al cambio de idioma)
   useEffect(() => {
     if (query.trim() === '') {
       setSugerenciasFiltradas([]);
+      setActiveIndex(-1);
       return;
     }
 
-    // Filtrar las preguntas que coincidan con la búsqueda
     const filtradas = LISTA_SUGERENCIAS.filter(item =>
-      item.pregunta.toLowerCase().includes(query.toLowerCase())
+      t(item.keyTraducida).toLowerCase().includes(query.toLowerCase())
     );
 
-    // LIMITADOR: Cortar el array para mostrar un máximo de 5 elementos como en Google
-    const limitadas = filtradas.slice(0, 5);
-    
-    setSugerenciasFiltradas(limitadas);
-  }, [query]);
+    setSugerenciasFiltradas(filtradas.slice(0, 5));
+    setActiveIndex(-1);
+  // 🔥 Escuchamos i18n.language de manera explícita para forzar el re-filtrado si el usuario cambia el idioma con el menú abierto
+  }, [query, i18n.language]); 
 
-  // Cerrar el dropdown si el usuario hace clic en cualquier otra parte de la pantalla
+  // Cerrar el dropdown al hacer clic fuera del contenedor
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
@@ -44,31 +48,46 @@ export const Hero: React.FC<HeroProps> = ({ onSearch, onCategoryClick, onSelectS
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleSearch = () => {
-    if (query.trim()) {
-      onSearch(query);
+  const handleSearch = (searchQuery: string = query) => {
+    if (searchQuery.trim()) {
+      onSearch(searchQuery);
       setMostrarDropdown(false);
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleClickSugerencia = (item: SugerenciaPregunta) => {
+    setQuery(t(item.keyTraducida)); 
+    setMostrarDropdown(false);
+    onSelectSugerencia(item);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
-      handleSearch();
+      if (activeIndex >= 0 && activeIndex < sugerenciasFiltradas.length) {
+        handleClickSugerencia(sugerenciasFiltradas[activeIndex]);
+      } else {
+        handleSearch();
+      }
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setMostrarDropdown(true);
+      setActiveIndex(prev => (prev < sugerenciasFiltradas.length - 1 ? prev + 1 : prev));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActiveIndex(prev => (prev > 0 ? prev - 1 : -1));
+    } else if (e.key === 'Escape') {
+      setMostrarDropdown(false);
     }
   };
 
-  const handleClickSugerencia = (item: SugerenciaPregunta) => {
-    setQuery(item.pregunta);
-    setMostrarDropdown(false);
-    onSelectSugerencia(item); // Ejecuta la query internamente con su modo correspondiente
-  };
-
   const categories = [
-    { emoji: '📺', name: 'Series', type: 'Serie' },
-    { emoji: '🎭', name: 'Personajes', type: 'Personaje' },
-    { emoji: '📚', name: 'Temporadas', type: 'Temporada' },
-    { emoji: '⭐', name: 'Reviews', type: 'Review' }
+    { emoji: '📺', nameKey: 'ui.series', type: 'Serie' },
+    { emoji: '🎭', nameKey: 'ui.personajes', type: 'Personaje' },
+    { emoji: '📚', nameKey: 'ui.temporadas', type: 'Temporada' },
+    { emoji: '⭐', nameKey: 'ui.reviews', type: 'Review' }
   ];
+
+  const tieneSugerencias = mostrarDropdown && sugerenciasFiltradas.length > 0;
 
   return (
     <div style={{ textAlign: 'center', padding: '80px 20px' }}>
@@ -80,13 +99,12 @@ export const Hero: React.FC<HeroProps> = ({ onSearch, onCategoryClick, onSelectS
         WebkitTextFillColor: 'transparent',
         fontWeight: 'bold'
       }}>
-        Buscador Semántico de Series
+        {t('ui.tituloHero')}
       </h2>
       <p style={{ color: '#94a3b8', marginBottom: '30px' }}>
-        Descubre relaciones en grafos de conocimiento locales y globales
+        {t('ui.subtituloHero')}
       </p>
 
-      {/* CONTENEDOR DE LA BARRA (Relativo para controlar el Dropdown flotante) */}
       <div ref={containerRef} style={{ position: 'relative', maxWidth: '600px', margin: '0 auto' }}>
         <div style={{ display: 'flex' }}>
           <input
@@ -97,38 +115,38 @@ export const Hero: React.FC<HeroProps> = ({ onSearch, onCategoryClick, onSelectS
               setMostrarDropdown(true);
             }}
             onFocus={() => setMostrarDropdown(true)}
-            onKeyPress={handleKeyPress}
-            placeholder="Escribe para buscar o ver preguntas sugeridas..."
+            onKeyDown={handleKeyDown}
+            placeholder={t('ui.buscarPlaceholder')}
             style={{
-              flex: 1,
-              padding: '15px 20px',
-              fontSize: '16px',
-              border: '1px solid #334155',
-              borderRadius: mostrarDropdown && sugerenciasFiltradas.length > 0 ? '10px 0 0 0' : '10px 0 0 10px',
+              width: '100%',
+              padding: '16px 20px 16px 50px',
               background: '#1e293b',
+              border: '2px solid #334155',
+              borderRadius: '12px',
               color: 'white',
-              outline: 'none'
+              fontSize: '16px',
+              outline: 'none',
+              transition: 'border-color 0.3s'
             }}
           />
           <button
-            onClick={handleSearch}
+            onClick={() => handleSearch()}
             style={{
               padding: '0 25px',
               background: '#38bdf8',
               border: 'none',
               color: 'black',
               fontWeight: 'bold',
-              borderRadius: mostrarDropdown && sugerenciasFiltradas.length > 0 ? '0 10px 0 0' : '0 10px 10px 0',
+              borderRadius: tieneSugerencias ? '0 10px 0 0' : '0 10px 10px 0',
               cursor: 'pointer',
               fontSize: '16px'
             }}
           >
-            Buscar
+            {t('ui.botonBuscar')}
           </button>
         </div>
 
-        {/* DROPDOWN ESTILO GOOGLE (Modo oculto al usuario) */}
-        {mostrarDropdown && sugerenciasFiltradas.length > 0 && (
+        {tieneSugerencias && (
           <div style={{
             position: 'absolute',
             top: '100%',
@@ -154,24 +172,28 @@ export const Hero: React.FC<HeroProps> = ({ onSearch, onCategoryClick, onSelectS
                   display: 'flex',
                   alignItems: 'center',
                   gap: '10px',
-                  transition: 'background 0.2s'
+                  transition: 'background 0.2s',
+                  background: activeIndex === index ? '#334155' : 'transparent'
                 }}
                 onMouseEnter={(e) => e.currentTarget.style.background = '#334155'}
-                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                onMouseLeave={(e) => {
+                  if (activeIndex !== index) e.currentTarget.style.background = 'transparent';
+                }}
               >
                 <span style={{ color: '#64748b' }}>🔍</span>
-                <span style={{ color: '#cbd5e1', fontSize: '14px', fontWeight: '500' }}>{item.pregunta}</span>
+                <span style={{ color: '#cbd5e1', fontSize: '14px', fontWeight: '500' }}>
+                  {t(item.keyTraducida)}
+                </span>
               </div>
             ))}
           </div>
         )}
       </div>
 
-      {/* Categorías inferiores */}
       <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginTop: '30px', flexWrap: 'wrap' }}>
         {categories.map(cat => (
           <div
-            key={cat.name}
+            key={cat.nameKey}
             onClick={() => onCategoryClick(cat.type)}
             style={{
               background: '#1e293b',
@@ -189,7 +211,7 @@ export const Hero: React.FC<HeroProps> = ({ onSearch, onCategoryClick, onSelectS
               e.currentTarget.style.background = '#1e293b';
             }}
           >
-            {cat.emoji} {cat.name}
+            {cat.emoji} {t(cat.nameKey)}
           </div>
         ))}
       </div>
