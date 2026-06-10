@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { useTranslation } from 'react-i18next'; // 👈 Importamos el hook
+import { useTranslation } from 'react-i18next';
 import { Serie } from '@/interfaces/series.interface';
 import { TarjetaResultado } from './TarjetaResultado';
 import { FiltrosLaterales } from './FiltrosLaterales';
@@ -9,11 +9,12 @@ import { FiltrosLaterales } from './FiltrosLaterales';
 interface ResultsGridProps {
   results: Serie[];
   loading: boolean;
+  onItemClick: (item: Serie) => void; // 👈 DECLARACIÓN DE PROP RECIBIDA
 }
 
-export const ResultsGrid: React.FC<ResultsGridProps> = ({ results = [], loading }) => {
+export const ResultsGrid: React.FC<ResultsGridProps> = ({ results = [], loading, onItemClick }) => {
   const [selectedFilter, setSelectedFilter] = useState<string | null>(null);
-  const { t } = useTranslation(); // 👈 Inicializamos t
+  const { t } = useTranslation();
 
   const safeResults = useMemo(() => (Array.isArray(results) ? results.filter(Boolean) : []), [results]);
 
@@ -44,7 +45,7 @@ export const ResultsGrid: React.FC<ResultsGridProps> = ({ results = [], loading 
   }, [safeResults, selectedFilter]);
 
   if (loading) {
-    return <div style={{ color: '#38bdf8', textAlign: 'center', padding: '40px', fontSize: '18px' }}>Cargando resultados...</div>; // Podrías crear "ui.cargando" en el json si quieres
+    return <div style={{ color: '#38bdf8', textAlign: 'center', padding: '40px', fontSize: '18px' }}>Cargando resultados de la federación...</div>;
   }
 
   return (
@@ -65,9 +66,8 @@ export const ResultsGrid: React.FC<ResultsGridProps> = ({ results = [], loading 
               justifyContent: 'space-between', 
               alignItems: 'center',
               marginBottom: '20px'
-            }} border-bottom="">
+            }}>
               <h3 style={{ color: '#818cf8', fontSize: '18px', margin: 0 }}>
-                {/* 👈 Interpolación inteligente de conteo */}
                 {t('ui.resultadosEncontrados', { count: filteredResults.length })} 
               </h3>
               {selectedFilter && (
@@ -89,9 +89,18 @@ export const ResultsGrid: React.FC<ResultsGridProps> = ({ results = [], loading 
             </div>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {filteredResults.map((item, index) => (
-                <TarjetaResultado key={item.id || index} item={item} onClick={() => {}} />
-              ))}
+              {filteredResults.map((item, index) => {
+                // Generamos una clave verdaderamente única combinando origen, tipo e índice de fila
+                const idUnicoTarjeta = `${item.origen}-${item.tipo}-${item.id || index}`;
+                
+                return (
+                  <TarjetaResultado 
+                    key={idUnicoTarjeta} // 👈 Solución definitiva al error de llaves duplicadas de React
+                    item={item} 
+                    onClick={onItemClick} 
+                  />
+                );
+              })}
             </div>
           </div>
         </div>

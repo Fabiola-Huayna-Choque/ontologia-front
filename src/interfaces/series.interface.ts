@@ -1,100 +1,299 @@
 // interfaces/series.interface.ts
 
+export type OrigenDatos =
+  | 'LOCAL'
+  | 'ONLINE'
+  | 'OFFLINE';
+
 export interface Serie {
+
+  // =====================================
+  // GENERALES
+  // =====================================
+
   id?: string | number;
+
   nombre: string;
-  tipo: 'Serie' | 'Personaje' | 'Protagonista' | 'Antagonista' | 'Temporada' | 'Episodio' | 'Productora' | 'PlataformaEmision' | 'PremioNominacion' | 'Actor/Actriz' | 'Director' | 'Genero';
+
   descripcion: string;
-  origen: 'LOCAL' | 'ONLINE' | 'OFFLINE';
-  
-  // ========== PROPIEDADES DE Series_televisivas ==========
-  estadoSerie?: string;           // "Finalizado", "En emisión"
-  numeroTemporadas?: number;      // ont:numeroTemporadas
-  numeroEpisodios?: number;       // ont:numeroEpisodios
-  paisProduccion?: string;        // ont:paisProduccion
-  fechaEstreno?: string;          // ont:fechaEstreno
-  categoriaObra?: string;         // ont:categoriaObra ("libro", "comics")
-  productora?: string;            // nombre de la productora
-  plataforma?: string;            // nombre de la plataforma
-  genero?: string;                // nombre del género
-  puntuacionPromedioCritica?: number;   // ont:puntuacionPromedioCritica
-  puntuacionPromedioAudiencia?: number; // ont:puntuacionPromedioAudiencia
-  detalleSerie?: string;          // ont:detalleSerie
-  
-  // ========== PROPIEDADES DE Personaje / Protagonista / Antagonista ==========
-  rolNarrativo?: string;          // ont:rolNarrativo ("Protagonista", "Antagonista", "secundario")
-  tipoPersonaje?: string;         // ont:tipoPersonaje ("Complejo", "Villano filosófico", "Manipuladora", etc.)
-  motivacionPrincipal?: string;   // ont:motivacionPrincipal (solo para Protagonista)
-  tipoConflicto?: string;         // ont:tipoConflicto (solo para Antagonista)
-  actorInterpretadoPor?: string;  // ont:actorInterpretadoPor (nombre del actor/actriz)
-  serie?: string;                 // Serie a la que pertenece el personaje
-  
-  // ========== PROPIEDADES DE Episodio ==========
-  duracionMinutos?: number;       // ont:duracionMinutos
-  numeroEpisodio?: number;        // ont:numeroEpisodio
-  nombreEpisodio?: string;        // ont:nombreEpisodio
-  fechaEmision?: string;          // ont:fechaEmision
-  calificacionEpisodio?: number;  // ont:calificacionEpisodio
-  presupuestoEpisodio?: number;   // ont:presupuestoEpisodio
-  observacion?: string;           // ont:observacion
-  
-  // ========== PROPIEDADES DE Temporada ==========
-  numeroTemporada?: number;       // ont:numeroTemporada
-  totalEpisodios?: number;        // ont:totalEpisodios
-  
-  // ========== PROPIEDADES DE Productora ==========
-  nombreProduc?: string;          // ont:nombreProduc
-  paisOrigen?: string;            // ont:paisOrigen
-  especialidadGenero?: string;    // ont:especialidadGenero
-  historial?: string;             // ont:Historial
-  
-  // ========== PROPIEDADES DE PlataformaEmision ==========
-  nombrePlataforma?: string;      // ont:nombrePlataforma
-  coberturaGeografica?: string;   // ont:coberturaGeografica
-  tipoPlataforma?: string;        // ont:tipo ("Streaming", "Streaming por suscripción")
-  
-  // ========== PROPIEDADES DE PremioNominacion ==========
-  nombrePremio?: string;          // ont:nombrePremio
-  anio?: number;                  // ont:anio
-  categoria?: string;             // ont:categoria ("Mejor serie de comedia", etc.)
-  
-  // ========== PROPIEDADES DE Director ==========
-  nombreDirector?: string;        // ont:nombreDirector
-  reconocido?: string;            // ont:reconocido ("si"/"no")
-  estiloVisual?: string;          // ont:estiloVisual
-  obrasPrevias?: string;          // ont:obrasPrevias
-  premiosDirectoriales?: string;  // ont:premiosDirectoriales
-  
-  // ========== PROPIEDADES DE Actor/Actriz ==========
-  nombreRol?: string;             // ont:nombreRol ("Actor principal", "Actriz principal")
-  
-  // ========== PROPIEDADES DE Genero ==========
-  nombreGenero?: string;          // ont:nombreGenero
-  subGenero?: string;             // ont:subGenero
-  tematicaDominante?: string;     // ont:tematicaDominante
-  
-  // ========== PROPIEDADES DE CriticaReview ==========
-  resenia?: string;               // ont:resenia
-  autor?: string;                 // ont:autor
-  calificacion?: number;          // ont:calificacion
-  fechaResenia?: string;          // ont:fechaResenia
-  
-  // ========== PROPIEDADES DE Recepcion ==========
-  numeroNominaciones?: number;    // ont:numeroNominaciones
-  numeroPremiosGanados?: number;  // ont:numeroPremiosGanados
-  
-  // ========== PROPIEDADES DE Produccion ==========
-  presupuesto?: number;           // ont:presupuesto
-  lugaresRodaje?: string;         // ont:lugaresRodage
-  tecnologiaUsada?: string;       // ont:tecnologiaUsada
-  fechaInicioProduccion?: string; // ont:fechaInicioProduccion
-  fechaFinProduccion?: string;    // ont:fechaFinProduccion
-  
-  // ========== PROPIEDADES ADICIONALES ==========
-  imagen?: string;                // Para futuras imágenes
-  premios?: string;   
-  
-  [key: string]: any;// Texto concatenado de premios
+
+  tipo: string;
+
+  origen: OrigenDatos;
+
+  uri?: string;
+
+  imagen?: string;
+
+  // =====================================
+  // SHIPAPU - SERIE
+  // =====================================
+
+  estadoSerie?: string;
+
+  numeroTemporadas?: number;
+
+  numeroEpisodios?: number;
+
+  paisProduccion?: string;
+
+  fechaEstreno?: string;
+
+  categoriaObra?: string;
+
+  productora?: string;
+
+  plataforma?: string;
+
+  genero?: string;
+
+  puntuacionPromedioCritica?: number;
+
+  puntuacionPromedioAudiencia?: number;
+
+  detalleSerie?: string;
+
+  // =====================================
+  // SHIPAPU - PERSONAJES
+  // =====================================
+
+  rolNarrativo?: string;
+
+  tipoPersonaje?: string;
+
+  motivacionPrincipal?: string;
+
+  tipoConflicto?: string;
+
+  actorInterpretadoPor?: string;
+
+  serie?: string;
+
+  // =====================================
+  // SHIPAPU - EPISODIOS
+  // =====================================
+
+  duracionMinutos?: number;
+
+  numeroEpisodio?: number;
+
+  nombreEpisodio?: string;
+
+  fechaEmision?: string;
+
+  calificacionEpisodio?: number;
+
+  presupuestoEpisodio?: number;
+
+  observacion?: string;
+
+  // =====================================
+  // SHIPAPU - TEMPORADAS
+  // =====================================
+
+  numeroTemporada?: number;
+
+  totalEpisodios?: number;
+
+  // =====================================
+  // SHIPAPU - PRODUCTORAS
+  // =====================================
+
+  nombreProduc?: string;
+
+  paisOrigen?: string;
+
+  especialidadGenero?: string;
+
+  historial?: string;
+
+  // =====================================
+  // SHIPAPU - PLATAFORMAS
+  // =====================================
+
+  nombrePlataforma?: string;
+
+  coberturaGeografica?: string;
+
+  tipoPlataforma?: string;
+
+  // =====================================
+  // SHIPAPU - PREMIOS
+  // =====================================
+
+  nombrePremio?: string;
+
+  anio?: number;
+
+  categoria?: string;
+
+  // =====================================
+  // SHIPAPU - DIRECTORES
+  // =====================================
+
+  nombreDirector?: string;
+
+  reconocido?: string;
+
+  estiloVisual?: string;
+
+  obrasPrevias?: string;
+
+  premiosDirectoriales?: string;
+
+  // =====================================
+  // SHIPAPU - ACTORES
+  // =====================================
+
+  nombreRol?: string;
+
+  // =====================================
+  // SHIPAPU - GENEROS
+  // =====================================
+
+  nombreGenero?: string;
+
+  subGenero?: string;
+
+  tematicaDominante?: string;
+
+  // =====================================
+  // SHIPAPU - CRITICAS
+  // =====================================
+
+  resenia?: string;
+
+  autor?: string;
+
+  calificacion?: number;
+
+  fechaResenia?: string;
+
+  // =====================================
+  // SHIPAPU - RECEPCION
+  // =====================================
+
+  numeroNominaciones?: number;
+
+  numeroPremiosGanados?: number;
+
+  // =====================================
+  // SHIPAPU - PRODUCCION
+  // =====================================
+
+  presupuesto?: number;
+
+  lugaresRodaje?: string;
+
+  tecnologiaUsada?: string;
+
+  fechaInicioProduccion?: string;
+
+  fechaFinProduccion?: string;
+
+  premios?: string;
+
+  // =====================================
+  // DBPEDIA OFFLINE / ONLINE
+  // =====================================
+
+  label?: string;
+
+  abstract?: string;
+
+  dbpediaType?: string;
+
+  thumbnail?: string;
+
+  sameAs?: string[];
+
+  wikipediaPage?: string;
+
+  wikiPageID?: string;
+
+  wikiPageRevisionID?: string;
+
+  country?: string;
+
+  language?: string;
+
+  network?: string;
+
+  company?: string;
+
+  creator?: string[];
+
+  producer?: string[];
+
+  writer?: string[];
+
+  starring?: string[];
+
+  directors?: string[];
+
+  genreDbpedia?: string[];
+
+  releaseDate?: string;
+
+  completionDate?: string;
+
+  runtime?: number;
+
+  numberOfEpisodes?: number;
+
+  numberOfSeasons?: number;
+
+  imdbId?: string;
+
+  originalTitle?: string;
+
+  basedOn?: string;
+
+  distributor?: string;
+
+  composer?: string;
+
+  editor?: string;
+
+  cinematography?: string;
+
+  openingTheme?: string;
+
+  endingTheme?: string;
+
+  officialWebsite?: string;
+
+  birthDate?: string;
+
+  deathDate?: string;
+
+  occupation?: string[];
+
+  knownFor?: string[];
+
+  nationality?: string;
+
+  awards?: string[];
+
+  aliases?: string[];
+
+  // =====================================
+  // CAMPOS RDF GENERICOS
+  // =====================================
+
+  rdfType?: string;
+
+  rdfLabel?: string;
+
+  rdfComment?: string;
+
+  rdfProperties?: Record<string, any>;
+
+  // =====================================
+  // FLEXIBILIDAD TOTAL
+  // =====================================
+
+  [key: string]: any;
 }
 
 export interface SearchResponse {
@@ -108,13 +307,27 @@ export interface ApiError {
   status: number;
 }
 
-// Tipo auxiliar para los filtros
 export interface FiltrosCount {
+
   series: number;
+
   personajes: number;
+
   productoras: number;
+
   plataformas: number;
+
   premios: number;
+
   episodios: number;
+
   temporadas: number;
+
+  actores?: number;
+
+  directores?: number;
+
+  generos?: number;
+
+  dbpedia?: number;
 }

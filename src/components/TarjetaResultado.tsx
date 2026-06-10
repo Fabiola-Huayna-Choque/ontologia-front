@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { useTranslation } from 'react-i18next'; // 👈 Importamos el hook
+import { useTranslation } from 'react-i18next';
 import { Serie } from '@/interfaces/series.interface';
 
 interface ResultCardProps {
@@ -10,7 +10,7 @@ interface ResultCardProps {
 }
 
 export const TarjetaResultado: React.FC<ResultCardProps> = ({ item, onClick }) => {
-  const { t } = useTranslation(); // 👈 Inicializamos t
+  const { t } = useTranslation();
   
   const getIcon = () => {
     switch (item.tipo) {
@@ -35,7 +35,6 @@ export const TarjetaResultado: React.FC<ResultCardProps> = ({ item, onClick }) =
       return item.rolNarrativo || t('ui.personaje');
     }
     if (item.tipo === 'Serie') {
-      // 👈 Traducimos pasando variables numéricas dinámicas al JSON
       const temps = t('ui.temporadasContador', { count: item.numeroTemporadas ?? 0 });
       const eps = t('ui.episodiosContador', { count: item.numeroEpisodios ?? 0 });
       return `${temps} • ${eps}`;
@@ -46,9 +45,9 @@ export const TarjetaResultado: React.FC<ResultCardProps> = ({ item, onClick }) =
   const renderBadgeOrigen = () => {
     if (!item.origen) return null;
     let color = '#64748b';
-    if (item.origen === 'Fuseki') color = '#38bdf8';
-    if (item.origen === 'DBPedia (Online)') color = '#22c55e';
-    if (item.origen === 'Local (Offline)') color = '#eab308';
+    if (item.origen === 'LOCAL') color = '#38bdf8';
+    if (item.origen === 'ONLINE') color = '#22c55e';
+    if (item.origen === 'OFFLINE') color = '#eab308';
 
     return (
       <span style={{
@@ -65,12 +64,35 @@ export const TarjetaResultado: React.FC<ResultCardProps> = ({ item, onClick }) =
     );
   };
 
+  // Filtrar propiedades internas para no duplicar campos semánticos en las mini-pestañas inferiores
   const propiedadesDinamicas = Object.entries(item).filter(([key, val]) => {
-    return !['id', 'nombre', 'descripcion', 'tipo', 'origen', 'numeroTemporadas', 'numeroEpisodios', 'rolNarrativo'].includes(key) && val !== null && val !== undefined && val !== '';
+    return !['id', 'nombre', 'descripcion', 'tipo', 'origen', 'uri', 'entidad', 'numeroTemporadas', 'numeroEpisodios', 'rolNarrativo', 'rdfProperties'].includes(key) && 
+           val !== null && val !== undefined && val !== '';
   });
 
   return (
-    <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+    <div 
+      onClick={() => onClick(item)}
+      style={{ 
+        background: '#1e293b', 
+        border: '1px solid #334155', 
+        borderRadius: '12px', 
+        padding: '20px', 
+        display: 'flex', 
+        flexDirection: 'column', 
+        gap: '12px',
+        cursor: 'pointer',
+        transition: 'transform 0.2s ease, box-shadow 0.2s ease'
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = 'translateY(-2px)';
+        e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.25)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = 'translateY(0)';
+        e.currentTarget.style.boxShadow = 'none';
+      }}
+    >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
           <span style={{ fontSize: '28px' }}>{getIcon()}</span>
@@ -108,7 +130,7 @@ export const TarjetaResultado: React.FC<ResultCardProps> = ({ item, onClick }) =
                 color: '#cbd5e1'
               }}
             >
-              <strong>{key}:</strong> {String(val)}
+              <strong>{key.replace(/([A-Z])/g, ' $1')}:</strong> {String(val)}
             </div>
           ))}
         </div>

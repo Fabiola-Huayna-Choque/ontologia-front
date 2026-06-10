@@ -9,6 +9,7 @@ import { ResultsGrid } from '@/components/ResultsGrid';
 import { useSearch } from '@/hooks/useSearch';
 import { LISTA_SUGERENCIAS, SugerenciaPregunta } from '@/constants/sugerencias';
 import { construirQueriesDinamicas } from '@/utils/sparqlParser';
+import { Serie } from '@/interfaces/series.interface';
 
 type View = 'home' | 'results';
 
@@ -26,8 +27,12 @@ function HomePageContent() {
   const [currentView, setCurrentView] = useState<View>('home');
   const [mostrarTodas, setMostrarTodas] = useState(false);
   
+  // 🔍 NUEVOS ESTADOS PARA GESTIONAR EL DETALLE DE LA ENTIDAD SELECCIONADA POR SPARQL
+  const [entidadSeleccionada, setEntidadSeleccionada] = useState<any>(null);
+  const [buscandoGrafo, setBuscandoGrafo] = useState(false);
+  
   const { t, i18n } = useTranslation(); 
-  const { results, loading, error, executeCombinedSearch } = useSearch();
+  const { results, loading, error, executeCombinedSearch, obtenerDetalleEntidad } = useSearch();
 
   // 💾 Cargar el idioma guardado previamente en LocalStorage de forma segura (Solo cliente)
   useEffect(() => {
@@ -44,18 +49,47 @@ function HomePageContent() {
   };
 
   const handleSearch = (textoBuscador: string) => {
-    const queries = construirQueriesDinamicas(textoBuscador);
+    // 👉 PASAMOS i18n.language COMO SEGUNDO PARÁMETRO
+    const queries = construirQueriesDinamicas(textoBuscador, i18n.language);
     executeCombinedSearch(queries);
     setCurrentView('results');
   };
 
   const seleccionarSugerencia = (item: SugerenciaPregunta) => {
+    // Si las sugerencias son queries SPARQL fijas y crudas, 
+    // reemplazamos dinámicamente cualquier filtro viejo de idioma que tengan inyectado
+    const queryAdaptada = item.query
+      .replace(/lang\(\?label\) = "[a-z]{2}"/g, `lang(?label) = "${i18n.language.split('-')[0]}"`)
+      .replace(/lang\(\?nombre\) = "[a-z]{2}"/g, `lang(?nombre) = "${i18n.language.split('-')[0]}"`);
+
     executeCombinedSearch({
-      fuseki: item.query,
-      online: item.query,
-      offline: item.query
+      fuseki: queryAdaptada,
+      online: queryAdaptada,
+      offline: queryAdaptada
     });
     setCurrentView('results');
+  };
+
+  // 🖱️ MANEJADOR PARA CUANDO EL USUARIO HAGA CLICK EN UN RESULTADO DE LA GRILLA
+  const handleVerDetallesRDF = async (item: Serie) => {
+    // Intentamos extraer el recurso/URI semántica de los campos posibles mapeados por tu parser
+    const recursoUri = item.entidad || item.uri || item.id?.toString();
+    if (!recursoUri) return;
+
+    setBuscandoGrafo(true);
+    
+    // Disparamos la consulta SPARQL estructural secundaria a través de tu hook corregido
+    const propiedadesExtra = await obtenerDetalleEntidad(recursoUri, item.origen);
+    
+    if (propiedadesExtra) {
+      setEntidadSeleccionada({
+        ...item,
+        rdfProperties: propiedadesExtra // Almacenamos el objeto clave-valor limpio de triples RDF
+      });
+    } else {
+      setEntidadSeleccionada(item);
+    }
+    setBuscandoGrafo(false);
   };
 
   const sugerenciasVisibles = mostrarTodas ? LISTA_SUGERENCIAS : LISTA_SUGERENCIAS.slice(0, 3);
@@ -149,16 +183,89 @@ function HomePageContent() {
       
       {currentView === 'results' && (
         <div style={{ maxWidth: '1200px', margin: '0 auto', paddingBottom: '25px', paddingLeft: '20px', paddingRight: '20px' }}>
-          <button 
-            onClick={() => setCurrentView('home')}
-            style={{ margin: '20px 0', padding: '8px 16px', background: '#334155', color: 'white', borderRadius: '5px', cursor: 'pointer', border: 'none' }}
-          >
-            {t('ui.volverInicio')}
-          </button>
+          
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <button 
+              onClick={() => {
+                setCurrentView('home');
+                setEntidadSeleccionada(null); // Limpiamos detalles abiertos al regresar
+              }}
+              style={{ margin: '20px 0', padding: '8px 16px', background: '#334155', color: 'white', borderRadius: '5px', cursor: 'pointer', border: 'none' }}
+            >
+              {t('ui.volverInicio')}
+            </button>
+
+            {/* ⚡ FEEDBACK VISUAL MIENTRAS SE HACE LA SEGUNDA CONSULTA SPARQL */}
+            {buscandoGrafo && (
+              <span style={{ color: '#eab308', fontSize: '14px', fontWeight: 'bold' }}>
+                ⚡ {t('ui.buscandoDetallesRDF', { defaultValue: 'Consultando triples del recurso...' })}
+              </span>
+            )}
+          </div>
           
           {error && <div style={{ color: '#ef4444', textAlign: 'center', marginBottom: '15px' }}>{error}</div>}
           
-          <ResultsGrid results={safeResults} loading={loading} />
+          {/* 👉 PASAMOS LA FUNCIÓN PROP CORRECTAMENTE ENLAZADA A RESULTSGRID */}
+          <ResultsGrid 
+            results={safeResults} 
+            loading={loading} 
+            onItemClick={handleVerDetallesRDF} 
+          />
+
+          {/* 📄 PANEL / MODAL DE ATRIBUTOS DINÁMICOS EXTRAÍDOS DEL GRAFO */}
+          {entidadSeleccionada && (
+            <div style={{ 
+              background: '#0f172a', 
+              border: '1px solid #334155', 
+              padding: '24px', 
+              borderRadius: '12px', 
+              marginTop: '30px',
+              boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3)'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', borderBottom: '1px solid #1e293b', paddingBottom: '12px' }}>
+                <div>
+                  <h2 style={{ color: '#38bdf8', margin: 0, fontSize: '22px' }}>
+                    {entidadSeleccionada.nombre}
+                  </h2>
+                  <span style={{ color: '#94a3b8', fontSize: '12px', textTransform: 'uppercase', fontWeight: '600' }}>
+                    {entidadSeleccionada.tipo} • ({entidadSeleccionada.origen})
+                  </span>
+                </div>
+                <button 
+                  onClick={() => setEntidadSeleccionada(null)} 
+                  style={{ background: '#ef4444', color: '#fff', border: 'none', padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}
+                >
+                  {t('ui.cerrar', { defaultValue: 'Cerrar Detalles' })}
+                </button>
+              </div>
+
+              {entidadSeleccionada.rdfProperties && Object.keys(entidadSeleccionada.rdfProperties).length > 0 ? (
+                <div>
+                  <h4 style={{ color: '#818cf8', margin: '0 0 10px 0', fontSize: '14px' }}>
+                    {t('ui.atributosGrafo', { defaultValue: 'Atributos Semánticos Encontrados (?p, ?o):' })}
+                  </h4>
+                  <pre style={{ 
+                    background: '#1e293b', 
+                    padding: '16px', 
+                    color: '#cbd5e1', 
+                    borderRadius: '8px', 
+                    overflowX: 'auto',
+                    fontSize: '13px',
+                    fontFamily: 'monospace',
+                    lineHeight: '1.6',
+                    border: '1px solid #334155'
+                  }}>
+                    {JSON.stringify(entidadSeleccionada.rdfProperties, null, 2)}
+                  </pre>
+                </div>
+              ) : (
+                <p style={{ color: '#64748b', fontSize: '14px', fontStyle: 'italic', margin: 0 }}>
+                  {t('ui.sinAtributosExtra', { defaultValue: 'No se encontraron propiedades adicionales en esta URI.' })}
+                </p>
+              )}
+            </div>
+          )}
+
         </div>
       )}
     </div>
