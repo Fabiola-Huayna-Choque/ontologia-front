@@ -204,56 +204,76 @@ export const construirQueriesDinamicas = (
     PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
     PREFIX ont: <http://www.semanticweb.org/dell/ontologies/2026/2#>
 
-    SELECT DISTINCT ?entidad ?nombre ?tipo ?descripcion
-    WHERE {
+    SELECT DISTINCT
+    (STR(?entidad) AS ?uri)
+    ?entidad
+    ?nombre
+    ?tipo
+    ?descripcion
+WHERE {
 
-      {
-        ?entidad rdf:type ont:Series_televisivas .
-        ?entidad ont:tituloSerie ?nombre .
-        OPTIONAL { ?entidad ont:detalleSerie ?descripcion . }
-        BIND("Serie" AS ?tipo)
-      }
+  {
+    ?entidad rdf:type ont:Series_televisivas .
+    ?entidad ont:tituloSerie ?nombre .
 
-      UNION
+    OPTIONAL { ?entidad ont:detalleSerie ?descripcion . }
 
-      {
-        ?entidad rdf:type ont:Personaje .
-        ?entidad ont:nombrePersonage ?nombre .
-        OPTIONAL { ?entidad ont:rolNarrativo ?descripcion . }
-        BIND("Personaje" AS ?tipo)
-      }
+    BIND("Serie" AS ?tipo)
+    BIND(ont:Series_televisivas AS ?tipoRdf)
+  }
 
-      UNION
+  UNION
 
-      {
-        ?entidad rdf:type ont:Episodio .
-        ?entidad ont:nombreEpisodio ?nombre .
-        OPTIONAL { ?entidad ont:observacion ?descripcion . }
-        BIND("Episodio" AS ?tipo)
-      }
+  {
+    ?entidad rdf:type ont:Personaje .
+    ?entidad ont:nombrePersonage ?nombre .
 
-      UNION
+    OPTIONAL { ?entidad ont:rolNarrativo ?descripcion . }
 
-      {
-        ?entidad rdf:type ont:Productora .
-        ?entidad ont:nombreProduc ?nombre .
-        OPTIONAL { ?entidad ont:Historial ?descripcion . }
-        BIND("Productora" AS ?tipo)
-      }
+    BIND("Personaje" AS ?tipo)
+    BIND(ont:Personaje AS ?tipoRdf)
+  }
 
-      UNION
+  UNION
 
-      {
-        ?entidad rdf:type ont:Director .
-        ?entidad ont:nombreDirector ?nombre .
-        OPTIONAL { ?entidad ont:estiloVisual ?descripcion . }
-        BIND("Director" AS ?tipo)
-      }
+  {
+    ?entidad rdf:type ont:Episodio .
+    ?entidad ont:nombreEpisodio ?nombre .
 
-      FILTER(regex(str(?nombre), "${cleanText}", "i"))
-    }
+    OPTIONAL { ?entidad ont:observacion ?descripcion . }
 
-    LIMIT 30
+    BIND("Episodio" AS ?tipo)
+    BIND(ont:Episodio AS ?tipoRdf)
+  }
+
+  UNION
+
+  {
+    ?entidad rdf:type ont:Productora .
+    ?entidad ont:nombreProduc ?nombre .
+
+    OPTIONAL { ?entidad ont:Historial ?descripcion . }
+
+    BIND("Productora" AS ?tipo)
+    BIND(ont:Productora AS ?tipoRdf)
+  }
+
+  UNION
+
+  {
+    ?entidad rdf:type ont:Director .
+    ?entidad ont:nombreDirector ?nombre .
+
+    OPTIONAL { ?entidad ont:estiloVisual ?descripcion . }
+
+    BIND("Director" AS ?tipo)
+    BIND(ont:Director AS ?tipoRdf)
+  }
+
+  
+FILTER(regex(str(?nombre), "${cleanText}", "i"))
+}
+LIMIT 30
   `;
 
   // =====================================================
@@ -419,92 +439,98 @@ export const construirQueriesDinamicas = (
 
   const queryOnline = `
     PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-    PREFIX dbo: <http://dbpedia.org/ontology/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX dbo: <http://dbpedia.org/ontology/>
 
-    SELECT DISTINCT
-      (?recurso AS ?entidad)
-      (?label AS ?nombre)
-      ?tipo
-      (?extra AS ?descripcion)
+SELECT DISTINCT
+    (STR(?recurso) AS ?uri)
+    (?recurso AS ?entidad)
+    (?label AS ?nombre)
+    ?tipo
+    (?extra AS ?descripcion)
 
-    WHERE {
+WHERE {
 
-      {
-        ?recurso rdf:type dbo:TelevisionShow .
-        ?recurso rdfs:label ?label .
+  {
+    ?recurso rdf:type dbo:TelevisionShow .
+    ?recurso rdfs:label ?label .
 
-        OPTIONAL {
-          ?recurso dbo:abstract ?extra .
-        }
+    OPTIONAL {
+      ?recurso dbo:abstract ?extra .
+    }
 
-        BIND("Serie" AS ?tipo)
-      }
+    BIND("Serie" AS ?tipo)
+    BIND(dbo:TelevisionShow AS ?tipoRdf)
+  }
 
-      UNION
+  UNION
 
-      {
-        ?recurso rdf:type dbo:Actor .
-        ?recurso rdfs:label ?label .
+  {
+    ?recurso rdf:type dbo:Actor .
+    ?recurso rdfs:label ?label .
 
-        OPTIONAL {
-          ?recurso dbo:birthPlace ?bp .
-          BIND(
-            STRAFTER(
-              STR(?bp),
-              "/resource/"
-            ) AS ?extra
-          )
-        }
+    OPTIONAL {
+      ?recurso dbo:birthPlace ?bp .
 
-        BIND("Actor/Actriz" AS ?tipo)
-      }
-
-      UNION
-
-      {
-        ?recurso rdf:type dbo:Person .
-        ?recurso rdfs:label ?label .
-
-        OPTIONAL {
-          ?recurso dbo:occupation ?occ .
-          BIND(STR(?occ) AS ?extra)
-        }
-
-        BIND("Persona" AS ?tipo)
-      }
-
-      UNION
-
-      {
-        ?recurso rdf:type dbo:TelevisionEpisode .
-        ?recurso rdfs:label ?label .
-
-        OPTIONAL {
-          ?recurso dbo:series ?ser .
-          BIND(
-            STRAFTER(
-              STR(?ser),
-              "/resource/"
-            ) AS ?extra
-          )
-        }
-
-        BIND("Episodio" AS ?tipo)
-      }
-
-      FILTER(lang(?label) = "${queryLang}")
-
-      FILTER(
-        regex(
-          str(?label),
-          "${cleanText}",
-          "i"
-        )
+      BIND(
+        STRAFTER(
+          STR(?bp),
+          "/resource/"
+        ) AS ?extra
       )
     }
 
-    LIMIT 30
+    BIND("Actor/Actriz" AS ?tipo)
+    BIND(dbo:Actor AS ?tipoRdf)
+  }
+
+  UNION
+
+  {
+    ?recurso rdf:type dbo:Person .
+    ?recurso rdfs:label ?label .
+
+    OPTIONAL {
+      ?recurso dbo:occupation ?occ .
+      BIND(STR(?occ) AS ?extra)
+    }
+
+    BIND("Persona" AS ?tipo)
+    BIND(dbo:Person AS ?tipoRdf)
+  }
+
+  UNION
+
+  {
+    ?recurso rdf:type dbo:TelevisionEpisode .
+    ?recurso rdfs:label ?label .
+
+    OPTIONAL {
+      ?recurso dbo:series ?ser .
+
+      BIND(
+        STRAFTER(
+          STR(?ser),
+          "/resource/"
+        ) AS ?extra
+      )
+    }
+
+    BIND("Episodio" AS ?tipo)
+    BIND(dbo:TelevisionEpisode AS ?tipoRdf)
+  }
+
+  FILTER(lang(?label) = "${queryLang}")
+
+  FILTER(
+    regex(
+      str(?label),
+      "${cleanText}",
+      "i"
+    )
+  )
+}
+LIMIT 30
   `;
 
   return {

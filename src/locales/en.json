@@ -39,6 +39,23 @@
     "p13": "Which series belong to the sci-fi genre and premiered after 2015?",
     "p14": "Which genre has the longest average episode duration?",
     "p15": "Which series combine three or more different genres?",
-    "p16": "What are the most common subgenres in the series?"
-  }
+    "p16": "What are the most common subgenres in the series?",
+    "p17": "What is the average time interval between the premiere of one season and the next?",
+    "p18": "Which series feature special episodes (such as Christmas specials or interactive episodes)?",
+    "p19": "In how many languages has the series been dubbed or subtitled for international distribution?",
+    "p20": "Which series hold the record for being the most binge-watched in their first week?",
+    "p21": "Which independent production companies have managed to place their series on the top 3 streaming platforms?",
+    "p22": "On which platform is it broadcast?",
+    "p23": "Which series are distributed on streaming platforms?",
+    "p24": "Is Netflix one of the platforms that releases the most series?",
+    "p25": "Which series have been produced in the United States?",
+    "p26": "Which countries produce the most series?",
+    "p27": "Series based on literary works or comic books",
+    "p28": "Highest-rated episode",
+    "p29": "Independent production companies on platforms",
+    "p30": "Most binge-watched series",
+    "p31": "Languages or platforms for international distribution",
+    "p32": "Series with special episodes",
+    "p33": "Time interval between seasons"
+}
 }

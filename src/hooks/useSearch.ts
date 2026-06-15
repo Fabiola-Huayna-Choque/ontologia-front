@@ -5,8 +5,24 @@ import i18n from 'i18next';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8082/api/query';
 
+// Prefijos base unificados
+const online = `PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX dbo: <http://dbpedia.org/ontology/>
+PREFIX dbr: <http://dbpedia.org/resource/>`;
+
+const offline = `PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX dbo: <http://dbpedia.org/ontology/>
+PREFIX dbr: <http://dbpedia.org/resource/>`;
+
+const local = `PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX ont: <http://www.semanticweb.org/dell/ontologies/2026/2#>`;
+
+// Helper de traducción por pasarela
 const traducirCadenaBack = async (texto: string, targetLang: string): Promise<string> => {
-  if (!texto || targetLang === 'es') return texto;
+  if (!texto) return texto;
   try {
     const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLang}&dt=t&q=${encodeURIComponent(texto)}`);
     const data = await res.json();
@@ -34,57 +50,74 @@ export const useSearch = () => {
       if (!data || !Array.isArray(data)) return [];
       
       const parsedResults = parseSparqlToSerie(data, origen);
-      const currentLang = i18n.language.split('-')[0];
+      const currentLang = i18n.language.split('-')[0]; // Captura dinámica del lenguaje de la UI (es, en, fr, etc.)
       
-      // 🌐 TRADUCCIÓN MULTI-IDIOMA EN TIEMPO REAL
-      if (currentLang !== 'es') {
-        const promesasTraducidas = parsedResults.map(async (item) => {
-          const debeTraducir = origen !== 'ONLINE'; 
-
-          return {
-            ...item,
-            nombre: debeTraducir ? await traducirCadenaBack(item.nombre, currentLang) : item.nombre,
-            descripcion: debeTraducir ? await traducirCadenaBack(item.descripcion, currentLang) : item.descripcion
-          };
-        });
-        return await Promise.all(promesasTraducidas);
-      }
-
-      return parsedResults;
+      // 🌍 TRADUCCIÓN GLOBAL REACTIVA DE RESULTADOS DE BÚSQUEDA
+      const promesasTraducidas = parsedResults.map(async (item) => {
+        // Traducimos todo el contenido de texto plano que venga del motor federado
+        return {
+          ...item,
+          nombre: await traducirCadenaBack(item.nombre, currentLang),
+          descripcion: await traducirCadenaBack(item.descripcion, currentLang)
+        };
+      });
+      
+      return await Promise.all(promesasTraducidas);
     } catch (err) {
       console.error(`Error en modo ${modo}:`, err);
       return [];
     }
   };
 
-  // 🔍 NUEVA CONSULTA SPARQL EN SEGUNDO PLANO PARA ATRIBUTOS DETALLADOS
-  // 🔍 CONSULTA SPARQL PROTEGIDA CONTRA CARACTERES ESPECIALES
   const obtenerDetalleEntidad = async (
-    uriEntidad: string, 
+    uriEntidad: string,
     origen: Serie['origen']
   ): Promise<Record<string, any> | null> => {
     try {
       if (!uriEntidad) return null;
 
-      // 1. Mapear el origen al endpoint correspondiente del Servidor
-      let modo: 'FUSEKI' | 'DBPEDIA_ONLINE' | 'DBPEDIA_OFFLINE' = 'DBPEDIA_ONLINE';
-      if (origen === 'LOCAL') modo = 'FUSEKI';
-      if (origen === 'OFFLINE') modo = 'DBPEDIA_OFFLINE';
+      let modo: 'FUSEKI' | 'DBPEDIA_ONLINE' | 'DBPEDIA_OFFLINE';
+      let prefijo: string = online;
 
-      // 2. Sanitización y Envoltura estricta del recurso RDF
-      // Si la URI ya viene envuelta en < >, la dejamos intacta; si no, la envolvemos de forma segura.
-      const recursoFormateado = uriEntidad.startsWith('<') && uriEntidad.endsWith('>')
-        ? uriEntidad
-        : `<${uriEntidad.trim()}>`;
+      if (origen === 'LOCAL') {
+        modo = 'FUSEKI';
+        prefijo = local;
+      } else if (origen === 'OFFLINE') {
+        modo = 'DBPEDIA_OFFLINE';
+        prefijo = offline;
+      } else {
+        modo = 'DBPEDIA_ONLINE';
+        prefijo = online;
+      }
 
-      // Estructuramos la query limpia pidiendo propiedades y objetos del grafo
+      let recursoSparql = '';
+      const uriLimpia = uriEntidad.trim();
+
+      if (uriLimpia.startsWith('http://') || uriLimpia.startsWith('https://')) {
+        recursoSparql = uriLimpia.startsWith('<') ? uriLinter : `<${uriLimpia}>`;
+      } else {
+        if (origen === 'LOCAL') {
+          if (uriLimpia.includes(' ') || uriLimpia.includes(':')) {
+            recursoSparql = `<http://www.semanticweb.org/dell/ontologies/2026/2#${uriLimpia.replace(/ /g, '_')}>`;
+          } else {
+            recursoSparql = `ont:${uriLimpia}`;
+          }
+        } else {
+          const formateadoDbpedia = uriLimpia.replace(/ /g, '_');
+          recursoSparql = `<http://dbpedia.org/resource/${formateadoDbpedia}>`;
+        }
+      }
+
       const sparqlQuery = `
+        ${prefijo}
         SELECT DISTINCT ?propiedad ?valor
         WHERE {
-          ${recursoFormateado} ?propiedad ?valor .
+          ${recursoSparql} ?propiedad ?valor .
         }
-        LIMIT 100
+        ORDER BY ?propiedad
       `;
+
+      console.log(`[${modo}] SPARQL Detalle:`, sparqlQuery);
 
       const response = await fetch(API_URL, {
         method: 'POST',
@@ -92,45 +125,79 @@ export const useSearch = () => {
         body: JSON.stringify({ modo, sparql: sparqlQuery })
       });
 
-      // Si el servidor backend responde con un error 500, lanzamos una alerta controlada en consola
-      if (!response.ok) {
-        console.error(`El servidor de triples RDF respondió con un código de estado: ${response.status}`);
-        return null;
-      }
-      
+      if (!response.ok) return null;
+
       const data = await response.json();
       if (!data || !Array.isArray(data)) return null;
 
       const currentLang = i18n.language.split('-')[0];
-      const propiedadesMapeadas: Record<string, any> = {};
+      const slotsAgrupados: Record<string, any> = {};
 
-      // 3. Normalizar propiedades eliminando los Namespaces (URIs) del Grafo RDF
       for (const item of data) {
+        if (item.error) continue;
+
         const propUri = item.propiedad?.value || item.propiedad || '';
         const valorRaw = item.valor?.value || item.valor || '';
+        const tipoValor = item.valor?.type || 'literal';
 
-        if (!propUri) continue;
+        if (!propUri || valorRaw === undefined || valorRaw === null) continue;
 
-        // Limpieza de claves (ej: http://dbpedia.org/ontology/numberOfSeasons -> numberOfSeasons)
-        const nombrePropiedad = propUri.split('/').pop().split('#').pop();
+        const nombreSlot = propUri.split('/').pop()?.split('#').pop() || propUri;
 
-        // Ignoramos enlaces internos cíclicos irrelevantes de Wikipedia que saturan el JSON
-        if (!nombrePropiedad || nombrePropiedad.includes('wikiPage') || propUri.includes('wikiPageLink')) {
+        if (
+          !nombreSlot ||
+          nombreSlot.includes('wikiPage') ||
+          propUri.includes('wikiPageLink') ||
+          nombreSlot === 'reason'
+        ) {
           continue;
         }
 
-        let valorFinal = valorRaw;
-        // Traducir dinámicamente Literales de texto largos si el idioma seleccionado no es Español
-        if (currentLang !== 'es' && typeof valorRaw === 'string' && valorRaw.length > 3 && !valorRaw.startsWith('http')) {
-          valorFinal = await traducirCadenaBack(valorRaw, currentLang);
+        let valorFinal: any = valorRaw;
+
+        if (tipoValor === 'uri' && typeof valorRaw === 'string') {
+          valorFinal = valorRaw.split('/').pop()?.split('#').pop() || valorRaw;
+          if (typeof valorFinal === 'string') {
+            valorFinal = valorFinal.replace(/_/g, ' ');
+          }
         }
 
-        propiedadesMapeadas[nombrePropiedad] = valorFinal;
+        if (propUri === 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type') {
+          slotsAgrupados.__tipoEntidad = valorFinal;
+        }
+
+        // 🌍 TRADUCCIÓN REACTIVA DE LITERALES EN EL PANEL DE DETALLES
+        if (
+          tipoValor === 'literal' &&
+          typeof valorFinal === 'string' &&
+          valorFinal.length > 1
+        ) {
+          try {
+            valorFinal = await traducirCadenaBack(valorFinal, currentLang);
+          } catch (e) {
+            console.warn('Fallo al traducir el literal del grafo:', valorFinal);
+          }
+        }
+
+        // Estructura de Grafos y agrupación de literales multivalor
+        if (slotsAgrupados[nombreSlot] !== undefined) {
+          if (Array.isArray(slotsAgrupados[nombreSlot])) {
+            if (!slotsAgrupados[nombreSlot].includes(valorFinal)) {
+              slotsAgrupados[nombreSlot].push(valorFinal);
+            }
+          } else {
+            if (slotsAgrupados[nombreSlot] !== valorFinal) {
+              slotsAgrupados[nombreSlot] = [slotsAgrupados[nombreSlot], valorFinal];
+            }
+          }
+        } else {
+          slotsAgrupados[nombreSlot] = valorFinal;
+        }
       }
 
-      return propiedadesMapeadas;
+      return slotsAgrupados;
     } catch (err) {
-      console.error("Error obteniendo detalles del recurso RDF:", err);
+      console.error('Error obteniendo detalles del recurso RDF:', err);
       return null;
     }
   };

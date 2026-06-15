@@ -9,7 +9,7 @@ import { FiltrosLaterales } from './FiltrosLaterales';
 interface ResultsGridProps {
   results: Serie[];
   loading: boolean;
-  onItemClick: (item: Serie) => void; // 👈 DECLARACIÓN DE PROP RECIBIDA
+  onItemClick: (item: Serie) => void; // 👈 Cambiado a obligatorio
 }
 
 export const ResultsGrid: React.FC<ResultsGridProps> = ({ results = [], loading, onItemClick }) => {
@@ -45,15 +45,15 @@ export const ResultsGrid: React.FC<ResultsGridProps> = ({ results = [], loading,
   }, [safeResults, selectedFilter]);
 
   if (loading) {
-    return <div style={{ color: '#38bdf8', textAlign: 'center', padding: '40px', fontSize: '18px' }}>Cargando resultados de la federación...</div>;
+    return <div style={{ color: '#38bdf8', textAlign: 'center', padding: '40px', fontSize: '18px' }}>...</div>;
   }
 
   return (
-    <div style={{ marginTop: '20px' }}>
+    <div style={{ marginTop: '20px', width: '100%' }}>
       {safeResults.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>No se encontraron resultados para tu búsqueda.</div>
       ) : (
-        <div style={{ display: 'flex', gap: '30px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '30px', alignItems: 'flex-start', animation: 'fadeIn 0.2s ease-out' }}>
           <FiltrosLaterales 
             filters={filters}
             selectedFilter={selectedFilter}
@@ -61,27 +61,14 @@ export const ResultsGrid: React.FC<ResultsGridProps> = ({ results = [], loading,
           />
 
           <div style={{ flex: 1, minWidth: '300px' }}>
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'space-between', 
-              alignItems: 'center',
-              marginBottom: '20px'
-            }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <h3 style={{ color: '#818cf8', fontSize: '18px', margin: 0 }}>
                 {t('ui.resultadosEncontrados', { count: filteredResults.length })} 
               </h3>
               {selectedFilter && (
                 <button
                   onClick={() => setSelectedFilter(null)}
-                  style={{
-                    padding: '6px 12px',
-                    background: '#334155',
-                    border: 'none',
-                    color: '#94a3b8',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontSize: '12px'
-                  }}
+                  style={{ padding: '6px 12px', background: '#334155', border: 'none', color: '#94a3b8', borderRadius: '6px', cursor: 'pointer', fontSize: '12px' }}
                 >
                   {t('ui.limpiarFiltro')}
                 </button>
@@ -90,14 +77,12 @@ export const ResultsGrid: React.FC<ResultsGridProps> = ({ results = [], loading,
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {filteredResults.map((item, index) => {
-                // Generamos una clave verdaderamente única combinando origen, tipo e índice de fila
                 const idUnicoTarjeta = `${item.origen}-${item.tipo}-${item.id || index}`;
-                
                 return (
                   <TarjetaResultado 
-                    key={idUnicoTarjeta} // 👈 Solución definitiva al error de llaves duplicadas de React
+                    key={idUnicoTarjeta}
                     item={item} 
-                    onClick={onItemClick} 
+                    onClick={onItemClick} // Enlaza directamente al manejador asíncrono del padre
                   />
                 );
               })}
@@ -105,6 +90,13 @@ export const ResultsGrid: React.FC<ResultsGridProps> = ({ results = [], loading,
           </div>
         </div>
       )}
+
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(4px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
     </div>
   );
 };

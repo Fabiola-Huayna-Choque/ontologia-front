@@ -39,6 +39,23 @@
     "p13": "Welche Serien gehören zum Sci-Fi-Genre und wurden nach 2015 uraufgeführt?",
     "p14": "Welches Genre hat die längste durchschnittliche Episodendauer?",
     "p15": "Welche Serien kombinieren drei oder mehr verschiedene Genres?",
-    "p16": "Was sind die häufigsten Subgenres in den Serien?"
-  }
+    "p16": "Was sind die häufigsten Subgenres in den Serien?",
+    "p17": "Wie groß ist der durchschnittliche Zeitabstand zwischen der Premiere einer Staffel und der nächsten?",
+    "p18": "Welche Serien haben Sonderfolgen (wie Weihnachtsspecials oder interaktive Episoden)?",
+    "p19": "In wie viele Sprachen wurde die Serie für den internationalen Vertrieb synchronisiert oder untertitelt?",
+    "p20": "Welche Serien halten den Rekord, in ihrer ersten Woche am häufigsten im Binge-Watching (Marathon) gesehen zu werden?",
+    "p21": "Welche unabhängigen Produktionsfirmen haben es geschafft, ihre Serien auf den 3 großen Streaming-Plattformen zu platzieren?",
+    "p22": "Auf welcher Plattform wird es ausgestrahlt?",
+    "p23": "Welche Serien werden auf Streaming-Plattformen vertrieben?",
+    "p24": "Gehört Netflix zu den Plattformen, die die meisten Serien herausbringen?",
+    "p25": "Welche Serien wurden in den Vereinigten Staaten produziert?",
+    "p26": "Welche Länder produzieren die meisten Serien?",
+    "p27": "Serien, die auf literarischen Werken oder Comics basieren",
+    "p28": "Folge mit der höchsten Bewertung",
+    "p29": "Unabhängige Produktionsfirmen auf den Plattformen",
+    "p30": "Am häufigsten im Binge-Watching gesehene Serien",
+    "p31": "Sprachen oder Plattformen für den internationalen Vertrieb",
+    "p32": "Serien mit Sonderfolgen",
+    "p33": "Zeitabstand zwischen den Staffeln"
+}
 }

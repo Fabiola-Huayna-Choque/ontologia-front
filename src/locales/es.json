@@ -39,6 +39,23 @@
     "p13": "¿Qué series son del género ciencia ficción estrenadas después de 2015?",
     "p14": "¿Qué género tiene el promedio de duración de episodios más largos?",
     "p15": "¿Qué series combinan tres o más géneros diferentes?",
-    "p16": "¿Cuáles son los subgéneros más comunes en las series?"
+    "p16": "¿Cuáles son los subgéneros más comunes en las series?",
+    "p17": "¿Cuál es el intervalo de tiempo promedio entre el estreno de una temporada y la siguiente?",
+  "p18": "¿Qué series cuentan con episodios especiales (como especiales de Navidad o episodios interactivos)?",
+  "p19": "¿En cuántos idiomas ha sido doblada o subtitulada la serie para su distribución internacional?",
+  "p20": "¿Qué series mantienen el récord de ser las más 'maratoneadas' (binge-watching) en su primera semana?",
+  "p21": "¿Qué productoras independientes han logrado colocar sus series en las 3 plataformas de streaming principales?",
+  "p22": "¿En qué plataforma se transmite?",
+  "p23": "¿Qué series se distribuyen en plataformas de tipo streaming?",
+  "p24": "¿Netflix es una de las plataformas que saca más series?",
+  "p25": "¿Qué series han sido producidas en Estados Unidos?",
+  "p26": "¿Qué países producen más series?",
+  "p27": "Series basadas en obras literarias o cómics",
+  "p28": "Episodio con la calificación más alta",
+  "p29": "Productoras independientes en las plataformas",
+  "p30": "Series más maratoneadas (binge-watching)",
+  "p31": "Idiomas o plataformas de distribución internacional",
+  "p32": "Series con episodios especiales",
+  "p33": "Intervalo de tiempo entre temporadas"
   }
 }

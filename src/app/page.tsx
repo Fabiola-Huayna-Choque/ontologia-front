@@ -6,8 +6,9 @@ import i18nConfig from '@/utils/i18n'; // 👈 IMPORTA TU ARCHIVO DE CONFIGURACI
 import { Navbar } from '@/components/Navbar';
 import { Hero } from '@/components/Hero';
 import { ResultsGrid } from '@/components/ResultsGrid';
+import { PanelDetalleLateral } from '@/components/PanelDetalleLateral'; // 👈 Importamos tu componente de detalles
 import { useSearch } from '@/hooks/useSearch';
-import { LISTA_SUGERENCIAS, SugerenciaPregunta } from '@/constants/sugerencias';
+import { LISTA_SUGERENCIAS, SugerenciaPregunta, LISTA_SUGERENCIAS_DBPEDIA_OFFLINE,LISTA_SUGERENCIAS_DBPEDIA_ONLINE } from '@/constants/sugerencias';
 import { construirQueriesDinamicas } from '@/utils/sparqlParser';
 import { Serie } from '@/interfaces/series.interface';
 
@@ -56,24 +57,46 @@ function HomePageContent() {
   };
 
   const seleccionarSugerencia = (item: SugerenciaPregunta) => {
-    // Si las sugerencias son queries SPARQL fijas y crudas, 
-    // reemplazamos dinámicamente cualquier filtro viejo de idioma que tengan inyectado
-    const queryAdaptada = item.query
-      .replace(/lang\(\?label\) = "[a-z]{2}"/g, `lang(?label) = "${i18n.language.split('-')[0]}"`)
-      .replace(/lang\(\?nombre\) = "[a-z]{2}"/g, `lang(?nombre) = "${i18n.language.split('-')[0]}"`);
+  const langISO = i18n.language.split('-')[0]; // Captura 'es', 'en', etc.
 
-    executeCombinedSearch({
-      fuseki: queryAdaptada,
-      online: queryAdaptada,
-      offline: queryAdaptada
-    });
-    setCurrentView('results');
+  // 1. 🕵️‍♂️ Buscamos la misma pregunta (por ID) en las tres listas independientes
+  const sugerenciaFuseki = LISTA_SUGERENCIAS.find(p => p.id === item.id);
+  const sugerenciaOnline = LISTA_SUGERENCIAS_DBPEDIA_ONLINE.find(p => p.id === item.id);
+  const sugerenciaOffline = LISTA_SUGERENCIAS_DBPEDIA_OFFLINE.find(p => p.id === item.id);
+
+  // 2. 📑 Función auxiliar para limpiar y adaptar TODOS los filtros de idioma dinámicos de DBpedia
+  const adaptarIdiomaDBpedia = (queryRaw: string | undefined) => {
+    if (!queryRaw) return '';
+    return queryRaw
+      .replace(/lang\(\?label\) = "[a-z]{2}"/g, `lang(?label) = "${langISO}"`)
+      .replace(/lang\(\?nombreActor\) = "[a-z]{2}"/g, `lang(?nombreActor) = "${langISO}"`)
+      .replace(/lang\(\?directorName\) = "[a-z]{2}"/g, `lang(?directorName) = "${langISO}"`)
+      .replace(/lang\(\?premio\) = "[a-z]{2}"/g, `lang(?premio) = "${langISO}"`)
+      .replace(/lang\(\?tituloSerie\) = "[a-z]{2}"/g, `lang(?tituloSerie) = "${langISO}"`)
+      .replace(/lang\(\?nombreEpisodio\) = "[a-z]{2}"/g, `lang(?nombreEpisodio) = "${langISO}"`)
+      .replace(/lang\(\?networkLabel\) = "[a-z]{2}"/g, `lang(?networkLabel) = "${langISO}"`);
   };
+
+  // 3. 🚀 Construimos el mapa federado enviando a cada entorno su consulta correspondiente
+  executeCombinedSearch({
+    // Fuseki usa sus URIs locales, no necesita reemplazo de idioma RDFS tradicional
+    fuseki: sugerenciaFuseki ? sugerenciaFuseki.query : '', 
+    
+    // Las DBpedia reciben su consulta adaptada al idioma actual de la UI
+    online: adaptarIdiomaDBpedia(sugerenciaOnline?.query),
+    offline: adaptarIdiomaDBpedia(sugerenciaOffline?.query)
+  });
+
+  setCurrentView('results');
+};
 
   // 🖱️ MANEJADOR PARA CUANDO EL USUARIO HAGA CLICK EN UN RESULTADO DE LA GRILLA
   const handleVerDetallesRDF = async (item: Serie) => {
     // Intentamos extraer el recurso/URI semántica de los campos posibles mapeados por tu parser
+    
     const recursoUri = item.entidad || item.uri || item.id?.toString();
+    console.log(item);
+console.log("URI enviada:", recursoUri);
     if (!recursoUri) return;
 
     setBuscandoGrafo(true);
@@ -81,6 +104,13 @@ function HomePageContent() {
     // Disparamos la consulta SPARQL estructural secundaria a través de tu hook corregido
     const propiedadesExtra = await obtenerDetalleEntidad(recursoUri, item.origen);
     
+
+console.log("URI:", recursoUri);
+console.log("PROPIEDADES RDF:", propiedadesExtra);
+
+console.log("RESULTADO RDF", propiedadesExtra);
+
+console.log("ITEM CLICK", item);
     if (propiedadesExtra) {
       setEntidadSeleccionada({
         ...item,
@@ -89,6 +119,7 @@ function HomePageContent() {
     } else {
       setEntidadSeleccionada(item);
     }
+
     setBuscandoGrafo(false);
   };
 
@@ -182,92 +213,76 @@ function HomePageContent() {
       )}
       
       {currentView === 'results' && (
-        <div style={{ maxWidth: '1200px', margin: '0 auto', paddingBottom: '25px', paddingLeft: '20px', paddingRight: '20px' }}>
-          
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <button 
-              onClick={() => {
-                setCurrentView('home');
-                setEntidadSeleccionada(null); // Limpiamos detalles abiertos al regresar
-              }}
-              style={{ margin: '20px 0', padding: '8px 16px', background: '#334155', color: 'white', borderRadius: '5px', cursor: 'pointer', border: 'none' }}
-            >
-              {t('ui.volverInicio')}
-            </button>
+  <div style={{ maxWidth: '1200px', margin: '0 auto', paddingBottom: '25px', paddingLeft: '20px', paddingRight: '20px' }}>
+    
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+      <button 
+        onClick={() => {
+          setCurrentView('home');
+          setEntidadSeleccionada(null);
+        }}
+        style={{ padding: '8px 16px', background: '#334155', color: 'white', borderRadius: '5px', cursor: 'pointer', border: 'none' }}
+      >
+        {t('ui.volverInicio')}
+      </button>
 
-            {/* ⚡ FEEDBACK VISUAL MIENTRAS SE HACE LA SEGUNDA CONSULTA SPARQL */}
-            {buscandoGrafo && (
-              <span style={{ color: '#eab308', fontSize: '14px', fontWeight: 'bold' }}>
-                ⚡ {t('ui.buscandoDetallesRDF', { defaultValue: 'Consultando triples del recurso...' })}
-              </span>
-            )}
-          </div>
-          
-          {error && <div style={{ color: '#ef4444', textAlign: 'center', marginBottom: '15px' }}>{error}</div>}
-          
-          {/* 👉 PASAMOS LA FUNCIÓN PROP CORRECTAMENTE ENLAZADA A RESULTSGRID */}
-          <ResultsGrid 
-            results={safeResults} 
-            loading={loading} 
-            onItemClick={handleVerDetallesRDF} 
-          />
-
-          {/* 📄 PANEL / MODAL DE ATRIBUTOS DINÁMICOS EXTRAÍDOS DEL GRAFO */}
-          {entidadSeleccionada && (
-            <div style={{ 
-              background: '#0f172a', 
-              border: '1px solid #334155', 
-              padding: '24px', 
-              borderRadius: '12px', 
-              marginTop: '30px',
-              boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3)'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', borderBottom: '1px solid #1e293b', paddingBottom: '12px' }}>
-                <div>
-                  <h2 style={{ color: '#38bdf8', margin: 0, fontSize: '22px' }}>
-                    {entidadSeleccionada.nombre}
-                  </h2>
-                  <span style={{ color: '#94a3b8', fontSize: '12px', textTransform: 'uppercase', fontWeight: '600' }}>
-                    {entidadSeleccionada.tipo} • ({entidadSeleccionada.origen})
-                  </span>
-                </div>
-                <button 
-                  onClick={() => setEntidadSeleccionada(null)} 
-                  style={{ background: '#ef4444', color: '#fff', border: 'none', padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}
-                >
-                  {t('ui.cerrar', { defaultValue: 'Cerrar Detalles' })}
-                </button>
-              </div>
-
-              {entidadSeleccionada.rdfProperties && Object.keys(entidadSeleccionada.rdfProperties).length > 0 ? (
-                <div>
-                  <h4 style={{ color: '#818cf8', margin: '0 0 10px 0', fontSize: '14px' }}>
-                    {t('ui.atributosGrafo', { defaultValue: 'Atributos Semánticos Encontrados (?p, ?o):' })}
-                  </h4>
-                  <pre style={{ 
-                    background: '#1e293b', 
-                    padding: '16px', 
-                    color: '#cbd5e1', 
-                    borderRadius: '8px', 
-                    overflowX: 'auto',
-                    fontSize: '13px',
-                    fontFamily: 'monospace',
-                    lineHeight: '1.6',
-                    border: '1px solid #334155'
-                  }}>
-                    {JSON.stringify(entidadSeleccionada.rdfProperties, null, 2)}
-                  </pre>
-                </div>
-              ) : (
-                <p style={{ color: '#64748b', fontSize: '14px', fontStyle: 'italic', margin: 0 }}>
-                  {t('ui.sinAtributosExtra', { defaultValue: 'No se encontraron propiedades adicionales en esta URI.' })}
-                </p>
-              )}
-            </div>
-          )}
-
-        </div>
+      {/* ⚡ FEEDBACK VISUAL MIENTRAS SE HACE LA SEGUNDA CONSULTA SPARQL */}
+      {buscandoGrafo && (
+        <span style={{ color: '#eab308', fontSize: '14px', fontWeight: 'bold' }}>
+          ⚡ {t('ui.buscandoDetallesRDF', { defaultValue: 'Consultando triples del recurso...' })}
+        </span>
       )}
+    </div>
+    
+    {error && <div style={{ color: '#ef4444', textAlign: 'center', marginBottom: '15px' }}>{error}</div>}
+    
+    {/* 💡 CONTROL DE FLUJO UNIFICADO */}
+    {entidadSeleccionada ? (
+      /* MUESTRA EL DETALLE COMPLETO SI EXISTE UNA ENTIDAD SELECCIONADA EN EL PADRE */
+      <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+        <div style={{ marginBottom: '20px' }}>
+          <button
+            onClick={() => setEntidadSeleccionada(null)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '10px 20px',
+              background: '#1e293b',
+              border: '1px solid #334155',
+              color: '#38bdf8',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: '600'
+            }}
+          >
+            ← Volver a los resultados anteriores
+          </button>
+        </div>
+        
+        {/* Pasamos de forma aislada las rdfProperties del grafo procesado */}
+        <PanelDetalleLateral 
+          item={entidadSeleccionada.rdfProperties || {}} 
+          headerInfo={{
+            nombre: entidadSeleccionada.nombre,
+            tipo: entidadSeleccionada.tipo,
+            uri: entidadSeleccionada.entidad || entidadSeleccionada.uri
+          }}
+          onClose={() => setEntidadSeleccionada(null)} 
+        />
+      </div>
+    ) : (
+      /* SI NO HAY SELECCIÓN, SE MUESTRA LA GRILLA NORMAL */
+      <ResultsGrid 
+        results={safeResults} 
+        loading={loading} 
+        onItemClick={handleVerDetallesRDF} 
+      />
+    )}
+
+  </div>
+)}
     </div>
   );
 }

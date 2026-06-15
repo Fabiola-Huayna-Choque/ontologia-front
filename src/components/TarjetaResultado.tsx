@@ -34,11 +34,7 @@ export const TarjetaResultado: React.FC<ResultCardProps> = ({ item, onClick }) =
     if (item.tipo === 'Protagonista' || item.tipo === 'Antagonista') {
       return item.rolNarrativo || t('ui.personaje');
     }
-    if (item.tipo === 'Serie') {
-      const temps = t('ui.temporadasContador', { count: item.numeroTemporadas ?? 0 });
-      const eps = t('ui.episodiosContador', { count: item.numeroEpisodios ?? 0 });
-      return `${temps} • ${eps}`;
-    }
+    // ✂️ Se eliminó el bloque que calculaba y mostraba las temporadas y episodios de la Serie
     return item.tipo;
   };
 
